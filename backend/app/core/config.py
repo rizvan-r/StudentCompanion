@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     
     # Google Gemini AI API Configuration
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-3.7-flash"
     
     # Centralized Google Drive Configuration
     GOOGLE_DRIVE_MODE: str = "service_account"  # "service_account" or "oauth_user"

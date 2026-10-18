@@ -1,4 +1,5 @@
 import os
+import asyncio
 import logging
 from typing import List, Dict, Any, Optional
 from ..core.config import settings
@@ -13,6 +14,12 @@ class GeminiService:
 
     def __init__(self):
         self.api_key = settings.GEMINI_API_KEY
+        self.primary_model = getattr(settings, "GEMINI_MODEL", "gemini-3.7-flash") or "gemini-3.7-flash"
+        raw_candidates = [self.primary_model, "gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.5-pro"]
+        self.candidate_models = []
+        for m in raw_candidates:
+            if m and m not in self.candidate_models:
+                self.candidate_models.append(m)
         self.client = None
         self._init_client()
 
@@ -21,7 +28,7 @@ class GeminiService:
             try:
                 from google import genai
                 self.client = genai.Client(api_key=self.api_key)
-                logger.info("Google Gemini Client initialized successfully.")
+                logger.info("Google Gemini Client initialized successfully with candidate models: %s", self.candidate_models)
             except Exception as e:
                 logger.warning("Could not initialize google-genai Client: %s", e)
 
@@ -82,21 +89,25 @@ STUDENT QUESTION:
 
 YOUR ANSWER:"""
 
-        # Call live Gemini if client is ready
+        # Call live Gemini with candidate models
         if self.client:
-            try:
-                response = self.client.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=prompt,
-                )
-                answer_text = response.text or ""
-                return {
-                    "answer": answer_text,
-                    "citations": citations,
-                    "has_sufficient_context": True,
-                }
-            except Exception as e:
-                logger.error("Gemini API call failed: %s. Falling back to structured response.", e)
+            for model_name in self.candidate_models:
+                try:
+                    response = await asyncio.to_thread(
+                        self.client.models.generate_content,
+                        model=model_name,
+                        contents=prompt,
+                    )
+                    answer_text = (response.text or "").strip()
+                    if answer_text:
+                        logger.info("Successfully generated grounded answer using model: %s", model_name)
+                        return {
+                            "answer": answer_text,
+                            "citations": citations,
+                            "has_sufficient_context": True,
+                        }
+                except Exception as e:
+                    logger.warning("Gemini model %s failed for document Q&A: %s. Trying next candidate...", model_name, e)
 
         # Fallback / Offline development response with citations
         sample_cite = citations[0] if citations else None
@@ -104,9 +115,9 @@ YOUR ANSWER:"""
         
         answer_text = (
             f"Based on your course materials in **{sample_cite['document_title'] if sample_cite else 'your documents'}**, "
-            f"here is the key explanation:\n\n"
-            f"• **Key Concept**: {retrieved_chunks[0]['content'][:260]}...{cite_str}\n\n"
-            f"This summary is grounded in your uploaded study notes."
+            f"here is the relevant excerpt regarding '{query}':\n\n"
+            f"• **Key Excerpt**: {retrieved_chunks[0]['content'][:320]}...{cite_str}\n\n"
+            f"*(Note: Live AI synthesis fallback mode active. Check your Gemini API quota or network connection).* "
         )
 
         return {
@@ -118,26 +129,30 @@ YOUR ANSWER:"""
     async def answer_general_study_question(self, query: str) -> str:
         """General academic study tutoring without document context."""
         system_instruction = (
-            "You are Student Companion AI, a friendly, encouraging academic tutor. "
-            "Help college students understand academic concepts, break down complex topics "
-            "into clear intuitive steps, and provide illustrative code or math examples where helpful."
+            "You are Student Companion AI, an intelligent, friendly academic tutor for college students. "
+            "Help the student understand concepts clearly, provide structured explanations, equations, "
+            "code examples, or step-by-step reasoning where applicable."
         )
 
         if self.client:
-            try:
-                response = self.client.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=f"{system_instruction}\n\nStudent: {query}\nTutor:",
-                )
-                return response.text or ""
-            except Exception as e:
-                logger.error("Gemini general tutor call failed: %s", e)
+            for model_name in self.candidate_models:
+                try:
+                    response = await asyncio.to_thread(
+                        self.client.models.generate_content,
+                        model=model_name,
+                        contents=f"{system_instruction}\n\nStudent: {query}\nTutor:",
+                    )
+                    answer = (response.text or "").strip()
+                    if answer:
+                        logger.info("Successfully generated general tutor answer using model: %s", model_name)
+                        return answer
+                except Exception as e:
+                    logger.warning("Gemini model %s failed for general tutor: %s. Trying next candidate...", model_name, e)
 
         return (
-            f"Here is an explanation of '{query}':\n\n"
-            f"1. **Core Concept**: Break the problem down into fundamental sub-problems.\n"
-            f"2. **Practical Approach**: Apply standard algorithmic or mathematical principles to analyze edge cases.\n"
-            f"3. **Next Steps**: Test your understanding with practice problem sets."
+            f"Regarding your query **\"{query}\"**:\n\n"
+            f"• Live AI generation could not be reached. Please check that `GEMINI_API_KEY` is configured in your backend environment variables.\n"
+            f"• You can also upload related textbooks or notes to the **Document Library** for grounded question answering."
         )
 
 gemini_service = GeminiService()
