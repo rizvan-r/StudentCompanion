@@ -1,0 +1,236 @@
+{
+  "name": "Student Companion AI - Chat Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "student-chat",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "student-companion-chat-agent-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate and normalize input payload from FastAPI\nconst body = $input.item.json.body || $input.item.json;\nif (!body.message || !body.conversation_id) {\n  throw new Error('Invalid input: message and conversation_id are required.');\n}\n\nreturn {\n  json: {\n    conversation_id: body.conversation_id,\n    user_id: body.user_id,\n    user_role: body.user_role || 'student',\n    department_id: body.department_id || null,\n    message: body.message.trim(),\n    retrieved_passages: body.retrieved_passages || []\n  }\n};"
+      },
+      "id": "node-validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/internal/knowledge/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "sc-internal-secret-key-2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": {{ JSON.stringify($json.message) }},\n  \"user_id\": {{ JSON.stringify($json.user_id) }},\n  \"department_id\": {{ JSON.stringify($json.department_id) }},\n  \"user_role\": {{ JSON.stringify($json.user_role) }},\n  \"top_k\": 5\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-fetch-knowledge",
+      "name": "Authorized Retrieval via FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const searchResult = $input.item.json;\nconst prevData = $('Validate Input').first().json;\n\nlet passages = [];\nif (Array.isArray(searchResult.passages) && searchResult.passages.length > 0) {\n  passages = searchResult.passages;\n} else if (Array.isArray(prevData.retrieved_passages) && prevData.retrieved_passages.length > 0) {\n  passages = prevData.retrieved_passages;\n}\n\nlet contextText = '';\nconst sourceCitations = [];\n\npassages.forEach((p, idx) => {\n  contextText += `\\n[Document #${idx + 1}: ${p.title || p.document_title || 'Study Material'}, Page ${p.page_number || p.page || 1}]\\n${p.content}\\n`;\n  sourceCitations.push({\n    document_id: p.document_id,\n    title: p.title || p.document_title || 'Study Material',\n    page: p.page_number || p.page || 1\n  });\n});\n\nreturn {\n  json: {\n    conversation_id: prevData.conversation_id,\n    user_id: prevData.user_id,\n    message: prevData.message,\n    contextText: contextText.trim(),\n    sourceCitations: sourceCitations,\n    hasSources: sourceCitations.length > 0\n  }\n};"
+      },
+      "id": "node-prepare-context",
+      "name": "Prepare Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.contextText ? \"COLLEGE STUDY MATERIALS CONTEXT:\\n\" + $json.contextText + \"\\n\\nSTUDENT QUESTION:\\n\" + $json.message : $json.message }}",
+        "systemMessage": "You are Student Companion AI, an academic assistant designed for college students.\n\nRules:\n1. When College Study Materials are provided in the context, answer the student's question accurately using those excerpts. Cite the genuine title and page using format: [Source: <Title>, Page <Page>].\n2. For conceptual academic queries without study materials, explain thoroughly with clear explanations, formulas, or code snippets.\n3. Never invent citations, faculty names, deadlines, exam dates, or college rules.\n4. If college study material context is provided but does not contain enough information to verify the question, clearly state that the reference materials are insufficient.\n5. Do not disclose private student data, API keys, or internal system configurations.",
+        "options": {
+          "systemMessage": "You are Student Companion AI, an academic assistant designed for college students.\n\nRules:\n1. When College Study Materials are provided in the context, answer the student's question accurately using those excerpts. Cite the genuine title and page using format: [Source: <Title>, Page <Page>].\n2. For conceptual academic queries without study materials, explain thoroughly with clear explanations, formulas, or code snippets.\n3. Never invent citations, faculty names, deadlines, exam dates, or college rules.\n4. If college study material context is provided but does not contain enough information to verify the question, clearly state that the reference materials are insufficient.\n5. Do not disclose private student data, API keys, or internal system configurations."
+        }
+      },
+      "id": "node-ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1100,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.8-flash",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "node-gemini-model",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        520
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gemini-api-credential",
+          "name": "Google Gemini API Key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiOutput = $input.item.json.output || $input.item.json.text || '';\nconst contextData = $('Prepare Context').first().json;\n\nreturn {\n  json: {\n    conversation_id: contextData.conversation_id,\n    answer: aiOutput,\n    sources: contextData.sourceCitations || [],\n    status: 'completed'\n  }\n};"
+      },
+      "id": "node-format-response",
+      "name": "Format Structured Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "node-respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Authorized Retrieval via FastAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authorized Retrieval via FastAPI": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Structured Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Structured Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

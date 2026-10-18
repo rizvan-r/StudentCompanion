@@ -1,0 +1,150 @@
+/* ==========================================================================
+   Student Companion AI — Design System & Theme Styles
+   Theme: "Campus Companion" (Calm, Intelligent, Academic Workspace)
+   ========================================================================== */
+
+:root {
+  /* Color Palette: Academic Indigo & Intelligent Teal */
+  --color-primary: #312e81;        /* Deep Academic Indigo */
+  --color-primary-hover: #1e1b4b;  /* Midnight Indigo */
+  --color-primary-light: #e0e7ff;  /* Soft Indigo Tint */
+  --color-primary-rgb: 49, 46, 129;
+
+  --color-accent: #0d9488;         /* Focus Teal */
+  --color-accent-hover: #0f766e;   /* Deep Teal */
+  --color-accent-light: #f0fdfa;   /* Subtle Teal Wash */
+  --color-accent-rgb: 13, 148, 136;
+
+  --color-amber: #d97706;
+  --color-amber-light: #fef3c7;
+  --color-emerald: #059669;
+  --color-emerald-light: #ecfdf5;
+  --color-rose: #e11d48;
+  --color-rose-light: #fff1f2;
+
+  /* Surfaces & Backgrounds */
+  --bg-app: #f8fafc;               /* Warm soft slate-white */
+  --bg-surface: #ffffff;           /* Clean Card Surface */
+  --bg-surface-elevated: #ffffff;
+  --bg-muted: #f1f5f9;
+  --bg-sidebar: #0f172a;           /* Sophisticated dark slate navy sidebar */
+  --bg-sidebar-active: #1e293b;
+  --bg-sidebar-hover: #1e293b;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  --text-primary: #0f172a;         /* High-contrast Slate */
+  --text-secondary: #475569;       /* Readable Body Muted */
+  --text-tertiary: #94a3b8;        /* Subtle Metadata */
+  --text-on-dark: #f8fafc;
+  --text-on-dark-muted: #94a3b8;
+
+  /* Borders & Shadows */
+  --border-subtle: #e2e8f0;
+  --border-focus: #6366f1;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 24px -4px rgba(15, 23, 42, 0.1);
+
+  /* Layout dimensions */
+  --sidebar-width: 232px;
+  --sidebar-collapsed-width: 64px;
+  --header-height: 52px;
+}
+
+/* CSS Reset & Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  font-family: var(--font-sans);
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Focus outline accessibility */
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+/* Scrollbar refinement */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Utility Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.status-pulse {
+  animation: pulseGlow 2s infinite ease-in-out;
+}

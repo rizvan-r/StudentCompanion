@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Python Virtual Environments
+.venv/
+*/.venv/
+venv/
+ENV/
+env/
+
+# Python Bytecode and Caches
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Build outputs
+dist/
+dist-ssr/
+*/dist/
+build/
+*.egg-info/
+
+# Environment Variables & Cloud Secrets (Keep credentials safe!)
+.env
+.env.local
+.env.*.local
+*.env
+*.env.local
+!*.example
+*service-account*.json
+*credentials*.json
+token.json
+client_secret*.json
+backend/secrets/
+backend/.drive_vault/
+.drive_vault/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE & Editor files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
