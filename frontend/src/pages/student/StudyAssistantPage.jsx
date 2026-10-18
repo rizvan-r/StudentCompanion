@@ -263,12 +263,19 @@ export function StudyAssistantPage() {
 
       setChatMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
+      console.error('StudyAssistant API request failed:', err);
+      const errDetail = err?.message || '';
+      let errorText = 'Unable to connect with AI Assistant. Please verify the FastAPI backend connection and retry.';
+      if (errDetail && !errDetail.includes('[object Object]')) {
+        errorText = `⚠️ Assistant Error: ${errDetail}. Please verify your FastAPI backend is running and retry.`;
+      }
+
       const errorMsg = {
         id: `msg-err-${Date.now()}`,
         role: 'assistant',
         isError: true,
         lastQuery: q,
-        text: 'Unable to connect with AI Assistant or retrieve document vectors. Please verify the FastAPI backend connection and retry.',
+        text: errorText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setChatMessages((prev) => [...prev, errorMsg]);

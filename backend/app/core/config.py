@@ -48,9 +48,9 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-004"
     EMBEDDING_DIMENSIONS: int = 768
     
-    # n8n AI Agent Workflow
-    N8N_WEBHOOK_URL: str = "http://localhost:5678/webhook/student-chat"
-    N8N_WEBHOOK_URI: str = "http://localhost:5678/webhook/student-chat"
+    # n8n AI Agent Workflow (Set to 'direct' for native high-speed Gemini 3.7 RAG)
+    N8N_WEBHOOK_URL: str = "direct"
+    N8N_WEBHOOK_URI: str = "direct"
     N8N_AUTH_HEADER_NAME: str = "StudentCompanion"
     N8N_WEBHOOK_SECRET: str = "richu1@studcomp"
     INTERNAL_API_KEY: str = "sc-internal-secret-key-2026"

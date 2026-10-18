@@ -58,7 +58,8 @@ class N8nService:
             for target_url in candidate_urls:
                 try:
                     logger.info("Calling n8n AI Agent webhook at %s", target_url)
-                    async with httpx.AsyncClient(timeout=60.0) as client:
+                    timeout = httpx.Timeout(8.0, connect=2.0)
+                    async with httpx.AsyncClient(timeout=timeout) as client:
                         res = await client.post(
                             target_url,
                             headers=headers,

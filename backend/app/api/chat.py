@@ -65,14 +65,19 @@ async def post_chat_message(
     )
 
     # 3. Retrieve authorized passages via MongoDB Atlas Vector Search
-    passages = await retrieval_service.search_authorized_passages(
-        query=message_text,
-        user_id=current_user.id,
-        department_id=current_user.department_id,
-        user_role=current_user.role,
-        requested_doc_ids=request.document_ids,
-        top_k=5,
-    )
+    passages = []
+    try:
+        passages = await retrieval_service.search_authorized_passages(
+            query=message_text,
+            user_id=current_user.id,
+            department_id=current_user.department_id,
+            user_role=current_user.role,
+            requested_doc_ids=request.document_ids,
+            top_k=5,
+        )
+    except Exception as e:
+        logger.warning("Vector retrieval encountered an issue: %s. Continuing with direct AI tutoring.", e)
+        passages = []
 
     # 4. Invoke n8n AI Agent (or resilient Gemini fallback)
     try:
