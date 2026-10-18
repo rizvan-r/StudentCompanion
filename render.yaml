@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: student-companion-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: N8N_WEBHOOK_URL
+        value: direct

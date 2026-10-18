@@ -38,6 +38,23 @@ class GoogleDriveService:
         cred_path = Path(settings.PROJECT_DIR) / settings.GOOGLE_APPLICATION_CREDENTIALS
 
         # 1. Check for OAuth 2.0 User Token (Required for personal @gmail.com Google Drives)
+        oauth_json_env = os.getenv("GOOGLE_DRIVE_OAUTH_TOKEN_JSON")
+        if oauth_json_env:
+            try:
+                import json
+                from google.oauth2.credentials import Credentials
+                from googleapiclient.discovery import build
+
+                info = json.loads(oauth_json_env)
+                creds = Credentials.from_authorized_user_info(info, scopes=SCOPES)
+                self.service = build("drive", "v3", credentials=creds, cache_discovery=False)
+                self._is_oauth = True
+                self._is_simulated = False
+                logger.info("Google Drive API initialized with OAuth User Token from environment variable")
+                return
+            except Exception as e:
+                logger.error("Failed to initialize Google Drive client from GOOGLE_DRIVE_OAUTH_TOKEN_JSON env var: %s", e)
+
         if token_path.exists() or self.mode == "oauth_user":
             if token_path.exists():
                 try:
@@ -60,6 +77,23 @@ class GoogleDriveService:
                     logger.error("Failed to initialize Google Drive client from OAuth token: %s", e)
 
         # 2. Check for Service Account (For Google Workspace Shared Drives)
+        sa_json_env = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") or os.getenv("GOOGLE_CREDENTIALS_JSON")
+        if sa_json_env:
+            try:
+                import json
+                from google.oauth2 import service_account
+                from googleapiclient.discovery import build
+
+                info = json.loads(sa_json_env)
+                creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+                self.service = build("drive", "v3", credentials=creds, cache_discovery=False)
+                self._is_oauth = False
+                self._is_simulated = False
+                logger.info("Google Drive API initialized with Service Account from environment variable")
+                return
+            except Exception as e:
+                logger.error("Failed to initialize Google Drive client from GOOGLE_SERVICE_ACCOUNT_JSON env var: %s", e)
+
         if cred_path.exists():
             try:
                 from google.oauth2 import service_account

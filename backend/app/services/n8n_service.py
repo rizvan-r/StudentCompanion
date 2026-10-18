@@ -25,11 +25,13 @@ class N8nService:
         retrieved_passages = retrieved_passages or []
 
         # 1. Resolve and check n8n webhook URL
-        webhook_url = (
-            getattr(settings, "N8N_WEBHOOK_URL", "")
-            or getattr(settings, "N8N_WEBHOOK_URI", "")
-            or "http://localhost:5678/webhook/student-chat"
-        ).strip()
+        raw_url = getattr(settings, "N8N_WEBHOOK_URL", None)
+        if raw_url is None:
+            raw_url = getattr(settings, "N8N_WEBHOOK_URI", "")
+        
+        webhook_url = (raw_url or "").strip()
+        if webhook_url.lower() in ("none", "direct", "disabled", "off", "false", ""):
+            webhook_url = ""
 
         if webhook_url:
             candidate_urls = [webhook_url]
